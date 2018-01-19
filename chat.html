@@ -118,16 +118,30 @@
     }
     
     .contact-list {
-        background-color: #ffffff;
+        background-color: #f8f7f7;
         width: 100%;
         height: calc(100% - 105px);
         overflow-y: auto;
     }
     
+    .new-message-contact{
+        border: #000000;
+    }
     .contact, .active-contact, .new-message-contact {
         height: 70px;
-        background-color: #ffffff;
+        background-color: #eeeeee;
         display: flex;
+        width: 100%;
+        display: block;
+        border-bottom: 1px solid black;
+    }
+    .contact-text{
+        font-size: 20px;
+        text-align: center;
+        transform: translateY(50%);
+        height: 40px;
+        margin: auto 0;
+        overflow: hidden;
     }
     
     .contact img, .active-contact img, .new-message-contact img {
@@ -145,9 +159,7 @@
         background-color: #f5f5f5;
     }
     
-    .new-message-contact {
-      font-weight: bold;
-    }	
+    	
     
     .contact-preview {
         width: 100%;
@@ -156,12 +168,7 @@
         display: flex;
         overflow: hidden;
     }
-    
-    .contact-text {
-        height: 40px;
-        margin: auto 0;
-        overflow: hidden;
-    }
+         
     
     .contact-time {
         width: 55px;
@@ -419,15 +426,28 @@
         <script>
 
             // centers = {id: name}
+            // messages = {id: [{type: you/me, data: data},]}
+            // obj = 
+            
             var messagesPanel, typedMessage, first = true, id;
             var centers = {}
-            var messages = [];
+            var messages = {};
             var statusBar;
             function main() {
-              messagesPanel = document.getElementById("messagePanel");
-              typedMessage = document.getElementById("typedMessage");
-              statusBar = document.getElementById("statusBar");
-              
+            
+                messagesPanel = document.getElementById("messagePanel");
+                typedMessage = document.getElementById("typedMessage");
+                statusBar = document.getElementById("statusBar");
+                var list = document.getElementById("contacts");
+                var contact = document.createElement("div");
+                contact.className = "new-message-contact";
+                var text = document.createElement("div");
+                text.className = "contact-text";
+                text.textContent = "Group Message";
+                contact.appendChild(text);
+                list.appendChild(contact);
+
+            
               const ws = new WebSocket("ws://localhost:4000");
             
               ws.onopen = function(e) {
@@ -445,8 +465,27 @@
                     if (isJson(data)){
                         console.log("Received message!" + data);
                         var obj = JSON.parse(data);
-                        if (obj.type == "centerAdd")
-                        if (obj.data)
+                        if (obj.type == "centerAdd"){
+                            // add to the List
+                            
+                            centers[obj.id] = obj.name;
+                            var list = document.getElementById("contacts");
+                            var contact = document.createElement("div");
+                            contact.id = obj.id;
+                            contact.className = "new-message-contact";
+                            var text = document.createElement("div");
+                            text.className = "contact-text";
+                            text.textContent = obj.name;
+                            contact.appendChild(text);
+                            list.appendChild(contact);
+                        }
+                        else if (obj.type == "centerRemove"){
+                            var contact = document.getElementById(obj.id);
+                            delete centers[obj.id];
+                            console.log(centers);
+                            contact.remove();
+                        }
+                        else if (obj.data)
                             addMessage(id, obj.data, true);
                     }
                     else{
@@ -551,7 +590,7 @@
                         <input type="text" class="input-search" placeholder="Search">
                     </div>
                 </div>
-                <div class="contact-list"></div>
+                <div class="contact-list" id="contacts"></div>
             </section>
     
             <section class="right">
