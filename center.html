@@ -1,0 +1,170 @@
+<html>
+<head>
+	<title>Center</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<style>
+p {
+	margin: 0.5em;
+	padding: 0.5em;
+	border-radius: 0.2em;
+        transition: opacity 0.4s ease-out;
+	opacity: 0;
+	white-space: pre-wrap;
+}
+
+p.show {
+	opacity: 1;
+}
+
+body {
+	height: 100vh;
+	margin: 0;
+	background-color: #FFFFFF;
+	display: flex;
+	flex-direction: column;
+	font-family: 'Roboto', sans-serif;
+	font-size: 16px;
+}
+
+textarea {
+	padding: 1em;
+	border: none;
+	outline: none;
+	border-top: 1px solid black;
+	font-family: 'Roboto', sans-serif;
+	font-size: 1cm;
+	height: 5em;
+	min-height: 5em;
+}
+
+#messagesPanel {
+	border-top: 1px solid black;
+	overflow-y: scroll;
+	color: black;
+	flex: 1;
+}
+
+#statusBar {
+	background-color: white;
+	height: 2em;
+	min-height: 2em;
+	font-size: 16px;
+	font-family: 'Roboto', sans-serif;
+	justify-content: center;
+	align-items: center;
+	display: flex;
+}
+</style>
+<script>
+var messagesPanel, typedMessage, first = true, ws, id;
+var messages = [];
+function main() {
+	messagesPanel = document.getElementById("messagesPanel");
+	typedMessage = document.getElementById("typedMessage");
+
+	typedMessage.onkeydown = function(e) {
+		if (e.keyCode === 13 && !e.shiftKey) {
+			if (typedMessage.value.length) {
+				typedMessage.value = typedMessage.value.substring(0, 512);
+				addMessage(id, typedMessage.value, false);
+				ws.send(JSON.stringify({
+                    type: "singleMessage",
+                    group: "center",
+					session: "00001",
+					data: typedMessage.value
+				}));
+			}
+			typedMessage.value = "";
+			return false;
+		}
+		return true;
+	};
+
+	typedMessage.onclick = function() {
+		console.log("Clicked typed message");
+		if (first) {
+			typedMessage.value = "";
+			first = false;
+		}
+	}
+
+	if (localStorage.id) {
+		id = localStorage.id;
+	} else {
+		id = Math.floor(Math.random() * 1000000);
+		localStorage.id = id;
+	}
+
+	console.log("Hostname: " + window.location.hostname + " Port: " + window.location.port);
+	ws = new WebSocket("ws://localhost:4000");
+
+	ws.onopen = function(e) {
+		ws.send(JSON.stringify({
+			session: "00001",
+            type: "centerAdd",
+            name: "puneetCenter"
+		}));
+	}
+
+	ws.onmessage = function ws_message(input){
+        var data = input.data;
+        if (isJson(data)){
+            console.log("Received message!" + data);
+            var obj = JSON.parse(data);
+            statusBar.textContent = "Connected!";
+            addMessage(id, obj.data, true);
+        }
+        else{
+            console.log("Data received is not JSON");
+        }
+    };
+
+	ws.onclose = function() {
+		statusBar.textContent = 'Connection lost';
+		typedMessage.disabled = true;
+	};
+}
+
+function isJson(str) {
+  try {
+      JSON.parse(str);
+  } catch (e) {
+      console.log(e);
+      return false;
+  }
+  return true;
+}
+
+function addMessage(id, message, left) {
+	var flexBox = document.createElement('div');
+	flexBox.style = 'display: flex; ' + (left ? '' : 'justify-content: flex-end');
+
+	var messageBox = document.createElement('p');
+	messageBox.style = "background-color: hsl(" + (id / 16 * 360) + ", 100%, 50%); overflow: hidden; text-overflow: ellipsis;";
+
+	messageBox.textContent = message;
+	flexBox.appendChild(messageBox);
+	if (messages.length == 50) {
+		messagesPanel.removeChild(messages.shift());
+	}
+	messages.push(flexBox);
+	setTimeout(function() {
+		messageBox.className = "show";
+	}, 10);
+
+	var wereBottomScrolled = true;//messagesPanel.scrollTop == messagesPanel.scrollHeight;
+	messagesPanel.appendChild(flexBox);
+	if (wereBottomScrolled) {
+		messagesPanel.scrollTop = messagesPanel.scrollHeight;
+	}
+}
+</script>
+</head>
+	<body onload="main();">
+		<div id="statusBar">Connecting...</div>
+		<div id="messagesPanel"></div>
+		<textarea id="typedMessage" >Type your message here...</textarea>
+	</body>
+</html>
