@@ -96,7 +96,7 @@
     }
     
     .search i {
-        widht: 60px;
+        width: 60px;
     }
     
     .search i, .wrap-message i {
@@ -148,7 +148,7 @@
     }
     
     .active-contact {
-        background-color: #ebebeb;
+        background-color: #b3dbb8;
     }
     
     .contact:hover, .new-message-contact:hover {
@@ -338,6 +338,13 @@
         width: 100%;
     }
     
+    .name{
+        color: rgba(0,0,0,0.4);
+        font-size: 0.6em;
+        text-align: center;
+        margin-top: 2px;
+        clear: both
+    }
     .time {
         color: rgba(0,0,0,0.4);
         font-size: 0.6em;

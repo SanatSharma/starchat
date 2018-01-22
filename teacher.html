@@ -14,7 +14,7 @@
 				// messages = {id: [{type: you/me, data: data, name: name},]}
 				// Current issues: Message from center being displayed and added to the 
 				// currentId message group. Can the center send private messages?
-				
+
 				
 				var messagesPanel, typedMessage, first = true, currentId="group";
 				var centers = {}
@@ -28,7 +28,7 @@
 					var list = document.getElementById("contacts");
 						
 						var contact = document.createElement("div");
-						contact.className = "new-message-contact";
+						contact.className = "new-message-contact active-contact";
 						var text = document.createElement("div");
 						contact.onclick = displayMessages;
 						contact.id = "group";
@@ -84,7 +84,9 @@
 								contact.remove();
 							}
 							else if (obj.data){
-								addMessage(obj.data, true, obj.name);
+								console.log("Received id: " + obj.id);
+								var name = centers[obj.id];
+								addMessage(obj.data, true, name);
 								var messageWrapper = {'type': 'you', 'data': obj.data,'name': obj.name};
 								messages[currentId].push(messageWrapper);
 								console.log(messages);
@@ -165,20 +167,29 @@
 					var name = evt.target;
 					console.log("reaching here");
 					var id = this.id // get the contact id
+					var c = currentId;
 					if (id == 'group'){
-						// display all group messages
-						currentId = "group";
-						console.log("Currrent id: " + currentId);
-	
-						messagesPanel.innerHTML = "";
-						var messageList = messages['group'];
+						// display all group messages						
+						if (c != "group"){
+							currentId = "group";
+							document.getElementById("group").className ="new-message-contact active-contact";
+							document.getElementById(c).className = "new-message-contact"; 
+							console.log("Currrent id: " + currentId);
+							messagesPanel.innerHTML = "";
+							var messageList = messages['group'];
+
+						}
 					}
 					else{
-						// display only the private chat messages for that id
-						currentId = id;
-						console.log("Currrent id: " + currentId);
-						messagesPanel.innerHTML = "";
-						var messageList = messages[id];                    
+						// display on{ly the private chat messages for that id
+						if (c != id){
+							document.getElementById(id).className ="new-message-contact active-contact";
+							document.getElementById(currentId).className = "new-message-contact"; 
+							currentId = id;
+							console.log("Currrent id: " + currentId);
+							messagesPanel.innerHTML = "";
+							var messageList = messages[id];                    
+						}
 					}
 	
 					// display appropriate messages
@@ -195,6 +206,7 @@
 				}
 	
 				function addMessage(message, left, name = "") {
+					console.log("name: " + name);
 				  var flexBox = document.createElement('div');
 				  if (!left)
 					flexBox.className = "chat-bubble me";
@@ -205,11 +217,17 @@
 				  var messageBox = document.createElement('p');
 				  messageBox.className = "content";
 				  var timeShow = document.createElement('p');
+				  var nameShow = document.createElement('p');
 				  timeShow.className = "time";
-				  timeShow.textContent = time; 
+				  timeShow.textContent = name + " " + time;
+				  
+				  nameShow.className = "name";
+				  nameShow.textContent = name;
+				 
 				  messageBox.textContent = message;
 				  flexBox.appendChild(messageBox);
 				  flexBox.appendChild(timeShow);
+				//  flexBox.appendChild(nameShow);
 				//  if (messages.length == 50) {
 				//    messagesPanel.removeChild(messages.shift());
 				//  }

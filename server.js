@@ -189,7 +189,8 @@ wss.on('connection', function connection(ws, req) {
             var client = teachers[session_dict[session]][0];
             client.send(JSON.stringify({
               type: "singleMessage",
-              data: d
+              data: d,
+              id: ws.id
             }));
           }
         }
