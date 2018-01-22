@@ -170,8 +170,10 @@ wss.on('connection', function connection(ws, req) {
             }
             else if(obj.type == "singleMessage"){
               console.log("Single Message");
-              if (obj.id in teacher_conn[obj.session]){
-                center[obj.id][0].send(JSON.stringify({
+              obj.id = parseInt(obj.id);
+              console.log("ID: " + obj.id);
+              if (teacher_conn[obj.session].indexOf(obj.id)>=0){
+                centers[obj.id][0].send(JSON.stringify({
                   type: "singleMessage",
                   data: d
                 }));
