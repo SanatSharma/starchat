@@ -426,10 +426,10 @@
         <script>
 
             // centers = {id: name}
-            // messages = {id: [{type: you/me, data: data},]}
+            // messages = {id: [{type: you/me, data: data, name: name},]}
             // obj = 
             
-            var messagesPanel, typedMessage, first = true, id;
+            var messagesPanel, typedMessage, first = true, currentId="group";
             var centers = {}
             var messages = {};
             var statusBar;
@@ -439,15 +439,19 @@
                 typedMessage = document.getElementById("typedMessage");
                 statusBar = document.getElementById("statusBar");
                 var list = document.getElementById("contacts");
-                var contact = document.createElement("div");
-                contact.className = "new-message-contact";
-                var text = document.createElement("div");
-                text.className = "contact-text";
-                text.textContent = "Group Message";
-                contact.appendChild(text);
-                list.appendChild(contact);
+                    
+                    var contact = document.createElement("div");
+                    contact.className = "new-message-contact";
+                    var text = document.createElement("div");
+                    contact.onclick = displayMessages;
+                    contact.id = "group";
+                    text.className = "contact-text";
+                    text.textContent = "Group Message";
+                    contact.appendChild(text);
+                    list.appendChild(contact);
+        
 
-            
+                messages['group'] = [];
               const ws = new WebSocket("ws://localhost:4000");
             
               ws.onopen = function(e) {
@@ -472,12 +476,14 @@
                             var list = document.getElementById("contacts");
                             var contact = document.createElement("div");
                             contact.id = obj.id;
+                            contact.onclick = displayMessages;
                             contact.className = "new-message-contact";
                             var text = document.createElement("div");
                             text.className = "contact-text";
                             text.textContent = obj.name;
                             contact.appendChild(text);
                             list.appendChild(contact);
+                            messages[obj.id] = [];
                         }
                         else if (obj.type == "centerRemove"){
                             var contact = document.getElementById(obj.id);
@@ -485,8 +491,13 @@
                             console.log(centers);
                             contact.remove();
                         }
-                        else if (obj.data)
-                            addMessage(id, obj.data, true);
+                        else if (obj.data){
+                            addMessage(obj.data, true, obj.name);
+                            var messageWrapper = {'type': 'you', 'data': obj.data,'name': obj.name};
+                            messages[currentId].push(messageWrapper);
+                            console.log(messages);
+
+                        }
                     }
                     else{
                         console.log("Data received is not JSON");
@@ -503,13 +514,28 @@
                 if (e.keyCode === 13 && !e.shiftKey) {
                   if (typedMessage.value.length) {
                     typedMessage.value = typedMessage.value.substring(0, 512);
-                    addMessage(id, typedMessage.value, false);
+                    addMessage(typedMessage.value, false);
+                    var messageWrapper = {'type': 'me', 'data': typedMessage.value};
+                    messages[currentId].push(messageWrapper);
+                    console.log(messages);
+         
+                    if(currentId == "group"){
+                        ws.send(JSON.stringify({
+                                    type: "groupMessage",
+                                    group: "teacher",
+                        session: "00001",
+                        data: typedMessage.value
+                        }));
+                    }
+                    else{
                     ws.send(JSON.stringify({
-                                type: "groupMessage",
-                                group: "teacher",
-                      session: "00001",
-                      data: typedMessage.value
-                    }));
+                            type: "singleMessage",
+                            group: "teacher",
+                            session: "00001",
+                            data: typedMessage.value,
+                            id: currentId
+                        }));
+                  }
                   }
                   typedMessage.value = "";
                   return false;
@@ -543,7 +569,40 @@
               return true;
             }
             
-            function addMessage(id, message, left) {
+            function displayMessages(evt){
+                var name = evt.target;
+                console.log("reaching here");
+                var id = this.id // get the contact id
+                if (id == 'group'){
+                    // display all group messages
+                    currentId = "group";
+                    console.log("Currrent id: " + currentId);
+
+                    messagesPanel.innerHTML = "";
+                    var messageList = messages['group'];
+                }
+                else{
+                    // display only the private chat messages for that id
+                    currentId = id;
+                    console.log("Currrent id: " + currentId);
+                    messagesPanel.innerHTML = "";
+                    var messageList = messages[id];                    
+                }
+
+                // display appropriate messages
+                messageList.forEach(function(mess){
+                        if(mess.type == "you"){
+                            addMessage(mess.data, true, mess.name);
+                        }
+                        else
+                            addMessage(mess.data, false);
+                    });
+
+ 
+
+            }
+
+            function addMessage(message, left, name = "") {
               var flexBox = document.createElement('div');
               if (!left)
                 flexBox.className = "chat-bubble me";
@@ -559,10 +618,10 @@
               messageBox.textContent = message;
               flexBox.appendChild(messageBox);
               flexBox.appendChild(timeShow);
-              if (messages.length == 50) {
-                messagesPanel.removeChild(messages.shift());
-              }
-              messages.push(flexBox);
+            //  if (messages.length == 50) {
+            //    messagesPanel.removeChild(messages.shift());
+            //  }
+            //  messages.push(flexBox);
               setTimeout(function() {
                 messageBox.className = "show";
               }, 10);
@@ -596,7 +655,7 @@
             <section class="right">
                 <div class="chat-head">
                     <div class="chat-name" style="padding-left:20px">
-                        <h1 class="font-name">Center Name</h1>
+                        <h1 class="font-name">Studio</h1>
                         <p id="statusBar" class="font-online">Connecting</p>
                     </div>
                     <i class="fa fa-times fa-lg" aria-hidden="true" id="close-contact-information"></i>
