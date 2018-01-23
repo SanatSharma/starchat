@@ -17,7 +17,10 @@
 			ii. Individual Message
 				1) Data Packet: {Type: singleMessage, Session: session, Group: teacher, Id: id, Data: data}
 		b. Center sending
-			i. Data Packet: {Type: singleMessage, Session: session, Group: center, Data: data}
+			i. Message to group
+				1) Data Packet: {Type: groupMessage, Session: session, Group: center, Data: data}
+			ii. Message to techer privately
+				1) Data Packet: {Type: singleMessage, Session: session, Group: center, Data: data}
 
 	5) WebSocket client connections to server
 		a) Center Connecting
