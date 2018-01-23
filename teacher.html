@@ -16,11 +16,13 @@
 				//	1) Message from center being displayed and added to the currentId message group. Can the center send private messages?
 				//  2) if teacher connection closes and center tries to send message, server gets an error and shuts down
 
-				
-				var messagesPanel, typedMessage, first = true, currentId=GROUP;
-				var centers = {}
-				var messages = {};
+				const SESSION = "00001";
 				const GROUP = "group";
+				var messagesPanel, typedMessage, first = true, currentId=GROUP;
+				const TESTINGURI = "ws://localhost:4000";
+				const PRODURI = "ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000";
+				var centers = {}
+				var messages = {};				
 				var statusBar;
 				function main() {
 				
@@ -42,7 +44,7 @@
 	
 					messages[GROUP] = [];
 				  
-				  const ws = new WebSocket("ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000");
+				  const ws = new WebSocket(TESTINGURI);
 				
 				  ws.onerror = function(e){
 					  alert("Not able to connect to server");
@@ -51,7 +53,7 @@
 				  ws.onopen = function(e) {
 					statusBar.textContent = "Connected";
 					ws.send(JSON.stringify({
-					  session: "00001",
+					  session: SESSION,
 							type: "teacherAdd",
 							name: "sanatTeacher"
 					}));
@@ -88,13 +90,19 @@
 							else if (obj.data){
 								console.log("Received id: " + obj.id);
 								var name = centers[obj.id];
-								addMessage(obj.data, true, name);
-								var type = obj.type;
 								var messageWrapper = {'type': 'you', 'data': obj.data,'name': name};
-								if(type == GROUP)
+								if(obj.type == "groupMessage"){
+									if (currentId==GROUP)
+										addMessage(obj.data, true, name);
 									messages[GROUP].push(messageWrapper);
-								else
-									messages[currentId].push(messageWrapper);
+								}
+								else{
+									if(obj.id == currentId)
+										addMessage(obj.data, true, name)
+										
+									messages[obj.id].push(messageWrapper);
+
+								}
 								console.log(messages);
 	
 							}
@@ -123,7 +131,7 @@
 							ws.send(JSON.stringify({
 										type: "groupMessage",
 										group: "teacher",
-							session: "00001",
+							session: SESSION,
 							data: typedMessage.value
 							}));
 						}
@@ -131,7 +139,7 @@
 						ws.send(JSON.stringify({
 								type: "singleMessage",
 								group: "teacher",
-								session: "00001",
+								session: SESSION,
 								data: typedMessage.value,
 								id: currentId
 							}));
@@ -206,8 +214,6 @@
 							else
 								addMessage(mess.data, false);
 						});
-	
-	 
 	
 				}
 	

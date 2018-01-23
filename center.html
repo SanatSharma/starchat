@@ -8,34 +8,116 @@
 			<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 			<link rel="stylesheet" href="chat.css">
 			<script>
-			var messagesPanel, typedMessage, first = true, ws, id;
-			var messages = [];
+			var messagesPanel, typedMessage, first = true, ws;
+			const TESTINGURI = "ws://localhost:4000";
+			const PRODURI = "ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000";
+			var statusBar;
+			const GENERAL = "general";
+			const PRIVATE = "private";
+			var currentId = GENERAL;
+			const SESSION = "00001";
+			var messages = {};
 			function main() {
 				messagesPanel = document.getElementById("messagePanel");
 				typedMessage = document.getElementById("typedMessage");
+				statusBar = document.getElementById("statusBar");
 				var list = document.getElementById("contacts");
+
 
 
 				var contact = document.createElement("div");
 						contact.className = "new-message-contact active-contact";
 						var text = document.createElement("div");
-						contact.id = "teacher";
+						contact.id = GENERAL;  // general chat 
+						contact.onclick = displayMessages;
 						text.className = "contact-text";
-						text.textContent = "Studio";
+						text.textContent = "Studio - General";
 						contact.appendChild(text);
 						list.appendChild(contact);
 
+
+				var contact2 = document.createElement("div");
+						contact2.className = "new-message-contact";
+						var text2 = document.createElement("div");
+						contact2.onclick = displayMessages;
+						contact2.id = PRIVATE; // private chat
+						text2.className = "contact-text";
+						text2.textContent = "Studio - Private";
+						contact2.appendChild(text2);
+						list.appendChild(contact2);
+
+				messages[GENERAL] = [];
+				messages[PRIVATE] = [];
+				
+				ws = new WebSocket(TESTINGURI);
+
+				ws.onerror = function(e){
+					alert("Could not connect to server");
+				}
+
+				ws.onopen = function(e) {
+					ws.send(JSON.stringify({
+						session: SESSION,
+						type: "centerAdd",
+						name: "puneetCenter"
+					}));
+					statusBar.textContent = "Connected!";
+				}
+
+				ws.onmessage = function ws_message(input){
+					var data = input.data;
+					if (isJson(data)){
+						console.log("Received message!" + data);
+						var obj = JSON.parse(data);
+						var messageWrapper = {'type': 'you', 'data': obj.data};
+						if (obj.type == "singleMessage"){
+							if(currentId == PRIVATE)
+								addMessage(obj.data, true);
+							messages[PRIVATE].push(messageWrapper);
+						}
+						else{
+							if(currentId == GENERAL)
+								addMessage(obj.data, true);
+
+							messages[GENERAL].push(messageWrapper);
+						}
+
+					}
+					else{
+						console.log("Data received is not JSON");
+					}
+				};
+
+				ws.onclose = function() {
+					statusBar.textContent = 'Connection lost';
+					typedMessage.disabled = true;
+				};
 				typedMessage.onkeydown = function(e) {
 					if (e.keyCode === 13 && !e.shiftKey) {
 						if (typedMessage.value.length) {
 							typedMessage.value = typedMessage.value.substring(0, 512);
-							addMessage(id, typedMessage.value, false);
-							ws.send(JSON.stringify({
-								type: "singleMessage",
-								group: "center",
-								session: "00001",
-								data: typedMessage.value
-							}));
+							addMessage(typedMessage.value, false);
+							var messageWrapper = {'type': 'me', 'data': typedMessage.value};
+							if(currentId == GENERAL){
+								ws.send(JSON.stringify({
+									type: "groupMessage",
+									group: "center",
+									session: SESSION,
+									data: typedMessage.value
+								}));
+								messages[GENERAL].push(messageWrapper);
+							}
+							else{
+								ws.send(JSON.stringify({
+									type: "singleMessage",
+									group: "center",
+									session: SESSION,
+									data: typedMessage.value
+								}));
+								messages[GENERAL].push(messageWrapper);
+							}
+
+
 						}
 						typedMessage.value = "";
 						return false;
@@ -58,38 +140,9 @@
 					localStorage.id = id;
 				}
 
-				ws = new WebSocket("ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000");
 
-				ws.onerror = function(e){
-					alert("Could not connect to server");
-				}
-
-				ws.onopen = function(e) {
-					ws.send(JSON.stringify({
-						session: "00001",
-						type: "centerAdd",
-						name: "puneetCenter"
-					}));
-					statusBar.textContent = "Connected!";
-				}
-
-				ws.onmessage = function ws_message(input){
-					var data = input.data;
-					if (isJson(data)){
-						console.log("Received message!" + data);
-						var obj = JSON.parse(data);
-						addMessage(id, obj.data, true);
-					}
-					else{
-						console.log("Data received is not JSON");
-					}
-				};
-
-				ws.onclose = function() {
-					statusBar.textContent = 'Connection lost';
-					typedMessage.disabled = true;
-				};
 			}
+
 
 			function isJson(str) {
 			try {
@@ -101,7 +154,33 @@
 			return true;
 			}
 
-			function addMessage(id, message, left) {
+			function displayMessages(evt){
+					var name = evt.target;
+					console.log("reaching here");
+					var id = this.id // get the contact id
+					var c = currentId;
+					// display on{ly the private chat messages for that id
+					if (c != id){
+						document.getElementById(id).className ="new-message-contact active-contact";
+						document.getElementById(currentId).className = "new-message-contact"; 
+						currentId = id;
+						console.log("Current id: " + currentId);
+						messagesPanel.innerHTML = "";
+						var messageList = messages[id];                    
+					}
+				
+					// display appropriate messages
+					messageList.forEach(function(mess){
+							if(mess.type == "you"){
+								addMessage(mess.data, true);
+							}
+							else
+								addMessage(mess.data, false);
+						});
+				}
+
+
+			function addMessage(message, left) {
 				var flexBox = document.createElement('div');if (!left)
 				flexBox.className = "chat-bubble me";
 			  else
@@ -116,10 +195,10 @@
 				messageBox.textContent = message;
 				flexBox.appendChild(messageBox);
 				flexBox.appendChild(timeShow);
-				if (messages.length == 50) {
-					messagesPanel.removeChild(messages.shift());
-				}
-				messages.push(flexBox);
+			//	if (messages.length == 50) {
+			//		messagesPanel.removeChild(messages.shift());
+			//	}
+			//	messages.push(flexBox);
 				setTimeout(function() {
 					messageBox.className = "show";
 				}, 10);
