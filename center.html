@@ -32,8 +32,14 @@
 						contact.onclick = displayMessages;
 						text.className = "contact-text";
 						text.textContent = "Studio - General";
+						var newMessage = document.createElement("div");
+						newMessage.className ="new-message";
+						newMessage.textContent = "99";
+						newMessage.id = "nm";
+						contact.appendChild(newMessage);
 						contact.appendChild(text);
-						list.appendChild(contact);
+						list.appendChild(contact);				
+
 
 
 				var contact2 = document.createElement("div");

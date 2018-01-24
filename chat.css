@@ -180,16 +180,22 @@
     .new-message {
         background: #09d261;
         border-radius: 50%;
-        width: 20px;
-        height: 20px;
+        width: 30px;
+        height: 30px;
         display: flex;
         margin: auto;
         flex-direction: column;
         color: white;
+        transform: translateY(50%);
+        float: right;
+        font-size: 15px;
+        text-align: center;
+        margin-right: 20px;
     }
     
     .new-message p {
       margin: auto;
+
     }
     
     /* ------ RIGHT SIDE ------ */
