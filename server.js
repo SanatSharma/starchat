@@ -61,13 +61,14 @@ wss.on('connection', function connection(ws, req) {
 
         // send Message to teacher to remove the center connection from message group
         console.log("Current sessions: " + JSON.stringify(session_dict));
-        var teacher_client = teachers[session_dict[session]][0];
-        teacher_client.send(JSON.stringify({
-          type: "centerRemove",
-          id: ws.id,
-          name: ws.name
-        }));
-
+        if (teachers[session_dict[session]]){
+          var teacher_client = teachers[session_dict[session]][0];
+          teacher_client.send(JSON.stringify({
+            type: "centerRemove",
+            id: ws.id,
+            name: ws.name
+          }));
+        }
         delete centers[ws.id];
         console.log("Centers: " + centers);
       }
@@ -133,13 +134,18 @@ wss.on('connection', function connection(ws, req) {
             console.log("Centers: " + centers);
 
             // need to send Data to teacher telling it to add the center to the group.
-            var teacher_client = teachers[session_dict[obj.session]][0];
-            console.log("Sending client info to teacher: " + ws.id + " " + ws.name);
-            teacher_client.send(JSON.stringify({
-              type: "centerAdd",
-              id: ws.id,
-              name: ws.name
-            }));
+            if (teachers[session_dict[obj.session]]){
+              var teacher_client = teachers[session_dict[obj.session]][0];
+              console.log("Sending client info to teacher: " + ws.id + " " + ws.name);
+              teacher_client.send(JSON.stringify({
+                type: "centerAdd",
+                id: ws.id,
+                name: ws.name
+              }));
+            }  
+            else{
+              console.log("ERROR SOMEWHERE");
+            }
           }
           else{
             console.log("No corresponding session");
