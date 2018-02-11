@@ -196,9 +196,11 @@ wss.on('connection', function connection(ws, req) {
             var session = obj.session;
             if (obj.type == GROUPMESSAGE){
               var type = GROUPMESSAGE;
+              var student = obj.student;
             }
             else if(obj.type == SINGLEMESSAGE){
               var type = SINGLEMESSAGE;
+              var student = "";
             }
             
             if(teachers[session_dict[session]]!=undefined){
@@ -206,7 +208,8 @@ wss.on('connection', function connection(ws, req) {
               client.send(JSON.stringify({
                 type: type,
                 data: d,
-                id: ws.id
+                id: ws.id,
+                student: student
               }));
             }
           }

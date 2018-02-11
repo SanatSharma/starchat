@@ -84,6 +84,9 @@
 							else if (obj.data){
 								console.log("Received id: " + obj.id);
 								var name = centers[obj.id]["name"];
+								if(obj.student != ""){
+									name += " - " + obj.student;
+								}
 								var messageWrapper = {'type': 'you', 'data': obj.data,'name': name};
 								if(obj.type == "groupMessage"){
 									if (currentId==GROUP)
@@ -196,6 +199,7 @@
 					messages[id] = [];
 
 				}
+
 				function addUnread(id){
 					var unread = centers[id][UNREAD];
 					unread = unread+1;

@@ -19,6 +19,7 @@
 			const SESSION = "00001";
 			var messages = {};
 			var studio = {};
+			var currentStudentId;
 
 			function main() {
 				messagesPanel = document.getElementById("messagePanel");
@@ -57,6 +58,14 @@
 						contact2.appendChild(text2);
 						list.appendChild(contact2);
 						studio[PRIVATE] = {"unread": 0};
+
+				var dividor = document.createElement("div");
+			
+					dividor.className = "hline";
+					dividor.id = "dividor";
+					list.appendChild(dividor);
+
+				addStudents();
 
 				messages[GENERAL] = [];
 				messages[PRIVATE] = [];
@@ -112,16 +121,22 @@
 					if (e.keyCode === 13 && !e.shiftKey) {
 						if (typedMessage.value.length) {
 							typedMessage.value = typedMessage.value.substring(0, 512);
-							addMessage(typedMessage.value, false);
 							var messageWrapper = {'type': 'me', 'data': typedMessage.value};
 							if(currentId == GENERAL){
-								ws.send(JSON.stringify({
-									type: "groupMessage",
-									group: "center",
-									session: SESSION,
-									data: typedMessage.value
-								}));
-								messages[GENERAL].push(messageWrapper);
+								if(currentStudentId){
+									ws.send(JSON.stringify({
+										type: "groupMessage",
+										group: "center",
+										session: SESSION,
+										data: typedMessage.value,
+										student: currentStudentId
+									}));
+									addMessage(typedMessage.value, false);
+									messages[GENERAL].push(messageWrapper);
+								}
+								else{
+									alert("Please choose a student.");
+								}
 							}
 							else{
 								ws.send(JSON.stringify({
@@ -130,10 +145,12 @@
 									session: SESSION,
 									data: typedMessage.value
 								}));
+								addMessage(typedMessage.value, false);
+								document.getElementById(currentStudentId).className = "contact";
+								currentStudentId = None;
 								messages[PRIVATE].push(messageWrapper);
 							}
-
-
+							
 						}
 						typedMessage.value = "";
 						return false;
@@ -167,6 +184,41 @@
 			return true;
 			}
 
+			function addStudents(){
+				list = document.getElementById("contacts");
+				var hardcoded = [
+					["Bob", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg"],
+					["Ross", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_02.jpg"],
+					["Max", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_03.jpg"],
+					["Claire", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_04.jpg"]
+				];
+
+				for(i=0;i<hardcoded.length;i++){
+					var student = document.createElement("div");
+					student.className = "contact";
+					student.id = hardcoded[i][0];
+
+					var image = document.createElement("div");
+					image.className = "contact img";
+					image.id = "image";
+					var image_placeholder = document.createElement("img");
+					image_placeholder.src = hardcoded[i][1];
+					image.appendChild(image_placeholder);
+
+					var text = document.createElement("div");
+					text.className = "contact-text";
+					text.id = "text";
+					text.textContent = hardcoded[i][0];
+					
+					student.appendChild(image);
+					student.appendChild(text);
+
+					student.onclick = setCurrentStudentId;
+
+					list.appendChild(student);					
+				}
+			}
+
 			function addUnread(id){
 					var unread = studio[id][UNREAD];
 					unread = unread+1;
@@ -177,6 +229,19 @@
 					m.textContent = unread;
 				}
 
+			function setCurrentStudentId(evt){
+				var name = evt.target;
+				var id = this.id;
+
+				if(!currentStudentId){
+					currentStudentId = id;
+				}
+				else if(currentStudentId != id){
+					document.getElementById(id).className = "contact";
+					currentStudentId = id;
+				}
+				document.getElementById(currentStudentId).className = "active-student";
+			}	
 			function displayMessages(evt){
 					var name = evt.target;
 					console.log("reaching here");
@@ -207,6 +272,7 @@
 								addMessage(mess.data, false);
 						});
 				}
+
 
 
 			function addMessage(message, left) {
