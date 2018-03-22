@@ -147,7 +147,7 @@
 								}));
 								addMessage(typedMessage.value, false);
 								document.getElementById(currentStudentId).className = "contact";
-								currentStudentId = None;
+								currentStudentId = null;
 								messages[PRIVATE].push(messageWrapper);
 							}
 							
@@ -197,20 +197,16 @@
 					var student = document.createElement("div");
 					student.className = "contact";
 					student.id = hardcoded[i][0];
-
-					var image = document.createElement("div");
-					image.className = "contact img";
-					image.id = "image";
 					var image_placeholder = document.createElement("img");
 					image_placeholder.src = hardcoded[i][1];
-					image.appendChild(image_placeholder);
+					image_placeholder.id = "image";
 
-					var text = document.createElement("div");
-					text.className = "contact-text";
+					var text = document.createElement("span");
+					text.className = "contact-text2";
 					text.id = "text";
 					text.textContent = hardcoded[i][0];
 					
-					student.appendChild(image);
+					student.appendChild(image_placeholder);
 					student.appendChild(text);
 
 					student.onclick = setCurrentStudentId;
@@ -233,15 +229,18 @@
 				var name = evt.target;
 				var id = this.id;
 
-				if(!currentStudentId){
-					currentStudentId = id;
+				if (currentId != PRIVATE){
+					if(!currentStudentId){
+						currentStudentId = id;
+					}
+					else if(currentStudentId != id){
+						document.getElementById(currentStudentId).className = "contact";
+						currentStudentId = id;
+						console.log("getting here");
+					}
+					document.getElementById(currentStudentId).className = "active-student";
 				}
-				else if(currentStudentId != id){
-					document.getElementById(id).className = "contact";
-					currentStudentId = id;
-				}
-				document.getElementById(currentStudentId).className = "active-student";
-			}	
+			}
 			function displayMessages(evt){
 					var name = evt.target;
 					console.log("reaching here");
@@ -249,6 +248,12 @@
 					var c = currentId;
 					// display on{ly the private chat messages for that id
 					if (c != id){
+						if(id==PRIVATE){
+							if(currentStudentId){
+								document.getElementById(currentStudentId).className = "contact";
+								currentStudentId = null;
+							}
+						}
 						document.getElementById(id).className ="new-message-contact active-contact";
 						document.getElementById(currentId).className = "new-message-contact"; 
 						currentId = id;
