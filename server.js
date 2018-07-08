@@ -17,6 +17,8 @@ var teachers = {};
 var centers = {};
 var session_dict = {};
 var idCounter = 0;
+const GROUPMESSAGE = "groupMessage";
+const SINGLEMESSAGE = "singleMessage";
 
 wss.on('connection', function connection(ws, req) {
   const ip = req.connection.remoteAddress;
@@ -59,13 +61,14 @@ wss.on('connection', function connection(ws, req) {
 
         // send Message to teacher to remove the center connection from message group
         console.log("Current sessions: " + JSON.stringify(session_dict));
-        var teacher_client = teachers[session_dict[session]][0];
-        teacher_client.send(JSON.stringify({
-          type: "centerRemove",
-          id: ws.id,
-          name: ws.name
-        }));
-
+        if (teachers[session_dict[session]]){
+          var teacher_client = teachers[session_dict[session]][0];
+          teacher_client.send(JSON.stringify({
+            type: "centerRemove",
+            id: ws.id,
+            name: ws.name
+          }));
+        }
         delete centers[ws.id];
         console.log("Centers: " + centers);
       }
@@ -131,13 +134,18 @@ wss.on('connection', function connection(ws, req) {
             console.log("Centers: " + centers);
 
             // need to send Data to teacher telling it to add the center to the group.
-            var teacher_client = teachers[session_dict[obj.session]][0];
-            console.log("Sending client info to teacher: " + ws.id + " " + ws.name);
-            teacher_client.send(JSON.stringify({
-              type: "centerAdd",
-              id: ws.id,
-              name: ws.name
-            }));
+            if (teachers[session_dict[obj.session]]){
+              var teacher_client = teachers[session_dict[obj.session]][0];
+              console.log("Sending client info to teacher: " + ws.id + " " + ws.name);
+              teacher_client.send(JSON.stringify({
+                type: "centerAdd",
+                id: ws.id,
+                name: ws.name
+              }));
+            }  
+            else{
+              console.log("ERROR SOMEWHERE");
+            }
           }
           else{
             console.log("No corresponding session");
@@ -159,22 +167,22 @@ wss.on('connection', function connection(ws, req) {
                 centers[client][0].close()
               });
             }*/
-            if (obj.type == "groupMessage"){
+            if (obj.type == GROUPMESSAGE){
               console.log("Group message");
               teacher_conn[obj.session].forEach(function each(client){
                 centers[client][0].send(JSON.stringify({
-                  type: "groupMessage",
+                  type: GROUPMESSAGE,
                   data: d
                 }));
               });
             }
-            else if(obj.type == "singleMessage"){
+            else if(obj.type == SINGLEMESSAGE){
               console.log("Single Message");
               obj.id = parseInt(obj.id);
               console.log("ID: " + obj.id);
               if (teacher_conn[obj.session].indexOf(obj.id)>=0){
                 centers[obj.id][0].send(JSON.stringify({
-                  type: "singleMessage",
+                  type: SINGLEMESSAGE,
                   data: d
                 }));
               }
@@ -186,12 +194,24 @@ wss.on('connection', function connection(ws, req) {
           else if (obj.group == "center"){
             console.log("center sending the message");
             var session = obj.session;
-            var client = teachers[session_dict[session]][0];
-            client.send(JSON.stringify({
-              type: "singleMessage",
-              data: d,
-              id: ws.id
-            }));
+            if (obj.type == GROUPMESSAGE){
+              var type = GROUPMESSAGE;
+              var student = obj.student;
+            }
+            else if(obj.type == SINGLEMESSAGE){
+              var type = SINGLEMESSAGE;
+              var student = "";
+            }
+            
+            if(teachers[session_dict[session]]!=undefined){
+              var client = teachers[session_dict[session]][0];
+              client.send(JSON.stringify({
+                type: type,
+                data: d,
+                id: ws.id,
+                student: student
+              }));
+            }
           }
         }
         else{

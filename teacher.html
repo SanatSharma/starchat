@@ -10,15 +10,21 @@
 			<link rel="stylesheet" href="chat.css">
 			<script>
 	
-				// centers = {id: name}
+				// centers = {id: name, unread}
 				// messages = {id: [{type: you/me, data: data, name: name},]}
-				// Current issues: Message from center being displayed and added to the 
-				// currentId message group. Can the center send private messages?
+				// Current issues: 
+				//	1) Message from center being displayed and added to the currentId message group. Can the center send private messages?
+				//  2) if teacher connection closes and center tries to send message, server gets an error and shuts down
 
-				
-				var messagesPanel, typedMessage, first = true, currentId="group";
+				const SESSION = "00001";
+				const GROUP = "group";
+				const UNREAD = "unread";
+
+				var messagesPanel, typedMessage, first = true, currentId=GROUP;
+				const TESTINGURI = "ws://localhost:4000";
+				const PRODURI = "ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000";
 				var centers = {}
-				var messages = {};
+				var messages = {};				
 				var statusBar;
 				function main() {
 				
@@ -31,16 +37,20 @@
 						contact.className = "new-message-contact active-contact";
 						var text = document.createElement("div");
 						contact.onclick = displayMessages;
-						contact.id = "group";
+						contact.id = GROUP;
 						text.className = "contact-text";
 						text.textContent = "Group Message";
+						var newMessage = document.createElement("div");
+						newMessage.id = "nm";
+						contact.appendChild(newMessage);
 						contact.appendChild(text);
 						list.appendChild(contact);
+						centers[GROUP] = {"name": GROUP, "unread": 0};
 			
 	
-					messages['group'] = [];
+					messages[GROUP] = [];
 				  
-				  const ws = new WebSocket("ws://localhost:4000");
+				  const ws = new WebSocket(TESTINGURI);
 				
 				  ws.onerror = function(e){
 					  alert("Not able to connect to server");
@@ -49,7 +59,7 @@
 				  ws.onopen = function(e) {
 					statusBar.textContent = "Connected";
 					ws.send(JSON.stringify({
-					  session: "00001",
+					  session: SESSION,
 							type: "teacherAdd",
 							name: "sanatTeacher"
 					}));
@@ -62,20 +72,8 @@
 							console.log("Received message!" + data);
 							var obj = JSON.parse(data);
 							if (obj.type == "centerAdd"){
-								// add to the List
-								
-								centers[obj.id] = obj.name;
-								var list = document.getElementById("contacts");
-								var contact = document.createElement("div");
-								contact.id = obj.id;
-								contact.onclick = displayMessages;
-								contact.className = "new-message-contact";
-								var text = document.createElement("div");
-								text.className = "contact-text";
-								text.textContent = obj.name;
-								contact.appendChild(text);
-								list.appendChild(contact);
-								messages[obj.id] = [];
+								// add to the List								
+								addCenter(obj.id, obj.name);
 							}
 							else if (obj.type == "centerRemove"){
 								var contact = document.getElementById(obj.id);
@@ -85,10 +83,29 @@
 							}
 							else if (obj.data){
 								console.log("Received id: " + obj.id);
-								var name = centers[obj.id];
-								addMessage(obj.data, true, name);
-								var messageWrapper = {'type': 'you', 'data': obj.data,'name': obj.name};
-								messages[currentId].push(messageWrapper);
+								var name = centers[obj.id]["name"];
+								if(obj.student != ""){
+									name += " - " + obj.student;
+								}
+								var messageWrapper = {'type': 'you', 'data': obj.data,'name': name};
+								if(obj.type == "groupMessage"){
+									if (currentId==GROUP)
+										addMessage(obj.data, true, name);
+									else{
+										addUnread(GROUP);
+									}
+									messages[GROUP].push(messageWrapper);
+								}
+								else{
+									if(obj.id == currentId)
+										addMessage(obj.data, true, name)
+									else{
+										addUnread(obj.id);
+									}
+
+									messages[obj.id].push(messageWrapper);
+
+								}
 								console.log(messages);
 	
 							}
@@ -113,11 +130,11 @@
 						messages[currentId].push(messageWrapper);
 						console.log(messages);
 			 
-						if(currentId == "group"){
+						if(currentId == GROUP){
 							ws.send(JSON.stringify({
 										type: "groupMessage",
 										group: "teacher",
-							session: "00001",
+							session: SESSION,
 							data: typedMessage.value
 							}));
 						}
@@ -125,7 +142,7 @@
 						ws.send(JSON.stringify({
 								type: "singleMessage",
 								group: "teacher",
-								session: "00001",
+								session: SESSION,
 								data: typedMessage.value,
 								id: currentId
 							}));
@@ -153,6 +170,7 @@
 				  }
 				}
 				
+
 				function isJson(str) {
 				  try {
 					  JSON.parse(str);
@@ -163,35 +181,69 @@
 				  return true;
 				}
 				
+				function addCenter(id, name){
+					centers[id] = {"name": name, "unread": 0};
+					var list = document.getElementById("contacts");
+					var contact = document.createElement("div");
+					contact.id = id;
+					contact.onclick = displayMessages;
+					contact.className = "new-message-contact";
+					var text = document.createElement("div");
+					text.className = "contact-text";
+					text.textContent = name;
+					var newMessage = document.createElement("div");
+					newMessage.id = "nm"
+					contact.appendChild(newMessage);
+					contact.appendChild(text);
+					list.appendChild(contact);
+					messages[id] = [];
+
+				}
+
+				function addUnread(id){
+					var unread = centers[id][UNREAD];
+					unread = unread+1;
+					centers[id][UNREAD] = unread;
+					var group = document.getElementById(id);
+					var m = group.childNodes.item("nm");
+					m.className = "new-message";
+					m.textContent = unread;
+				}
+
 				function displayMessages(evt){
 					var name = evt.target;
 					console.log("reaching here");
 					var id = this.id // get the contact id
 					var c = currentId;
-					if (id == 'group'){
+					if (id == GROUP){
 						// display all group messages						
-						if (c != "group"){
-							currentId = "group";
-							document.getElementById("group").className ="new-message-contact active-contact";
+						if (c != GROUP){
+							currentId = GROUP;
+							document.getElementById(GROUP).className ="new-message-contact active-contact";
 							document.getElementById(c).className = "new-message-contact"; 
-							console.log("Currrent id: " + currentId);
+							console.log("Current id: " + currentId);
 							messagesPanel.innerHTML = "";
-							var messageList = messages['group'];
-
+							var messageList = messages[GROUP];
 						}
 					}
 					else{
-						// display on{ly the private chat messages for that id
+						// display only the private chat messages for that id
 						if (c != id){
 							document.getElementById(id).className ="new-message-contact active-contact";
 							document.getElementById(currentId).className = "new-message-contact"; 
 							currentId = id;
-							console.log("Currrent id: " + currentId);
+							console.log("Current id: " + currentId);
 							messagesPanel.innerHTML = "";
-							var messageList = messages[id];                    
+							var messageList = messages[id];
 						}
 					}
 	
+					var g = document.getElementById(currentId);
+					var s = g.childNodes.item("nm");
+					s.className = "";
+					s.textContent = "";
+					centers[currentId][UNREAD] = 0;
+
 					// display appropriate messages
 					messageList.forEach(function(mess){
 							if(mess.type == "you"){
@@ -200,8 +252,6 @@
 							else
 								addMessage(mess.data, false);
 						});
-	
-	 
 	
 				}
 	
