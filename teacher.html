@@ -16,7 +16,18 @@
 				//	1) Message from center being displayed and added to the currentId message group. Can the center send private messages?
 				//  2) if teacher connection closes and center tries to send message, server gets an error and shuts down
 
-				const SESSION = "00001";
+				var urlParams = parseURLParams(window.location.href);
+				console.log(urlParams);
+				
+				var SESSION;
+
+				if ("SessionID" in urlParams) {
+					SESSION = urlParams["SessionID"][0];
+				} else {
+					SESSION = "00001";
+					console.log("Exception: Unable to read Session from URL");
+				}
+				console.log(SESSION);
 				const GROUP = "group";
 				const UNREAD = "unread";
 
@@ -179,6 +190,26 @@
 					  return false;
 				  }
 				  return true;
+				}
+
+				function parseURLParams(url) {
+					var queryStart = url.indexOf("?") + 1,
+							queryEnd   = url.indexOf("#") + 1 || url.length + 1,
+							query = url.slice(queryStart, queryEnd - 1),
+							pairs = query.replace(/\+/g, " ").split("&"),
+							parms = {}, i, n, v, nv;
+
+					if (query === url || query === "") return;
+
+					for (i = 0; i < pairs.length; i++) {
+							nv = pairs[i].split("=", 2);
+							n = decodeURIComponent(nv[0]);
+							v = decodeURIComponent(nv[1]);
+
+							if (!parms.hasOwnProperty(n)) parms[n] = [];
+							parms[n].push(nv.length === 2 ? v : null);
+					}
+					return parms;
 				}
 				
 				function addCenter(id, name){
