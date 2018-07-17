@@ -20,6 +20,7 @@
 				console.log(urlParams);
 				
 				var SESSION;
+				var STUDIONAME;
 
 				if ("SessionID" in urlParams) {
 					SESSION = urlParams["SessionID"][0];
@@ -28,6 +29,16 @@
 					console.log("Exception: Unable to read Session from URL");
 				}
 				console.log(SESSION);
+
+				if ("StudioName" in urlParams) {
+					STUDIONAME = urlParams["StudioName"][0];
+				} else {
+					STUDIONAME = "Studio";
+					console.log("Exception: Unable to read Session from URL");
+				}
+			console.log(STUDIONAME);
+
+
 				const GROUP = "group";
 				const UNREAD = "unread";
 
@@ -72,7 +83,7 @@
 					ws.send(JSON.stringify({
 					  session: SESSION,
 							type: "teacherAdd",
-							name: "sanatTeacher"
+							name: STUDIONAME
 					}));
 					}
 					

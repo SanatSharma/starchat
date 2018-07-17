@@ -17,6 +17,7 @@
 			var urlParams = parseURLParams(window.location.href);
 			console.log(urlParams);
 			var SESSION;
+			var NAME;
 
 			if ("SessionID" in urlParams) {
 				SESSION = urlParams["SessionID"][0];
@@ -26,6 +27,15 @@
 			}
 			console.log(SESSION);
 
+			if ("CenterName" in urlParams) {
+				NAME = urlParams["CenterName"][0];
+			} else {
+				NAME = "puneetCenter";
+				console.log("Exception: Unable to read Session from URL");
+			}
+			console.log(NAME);
+
+	
 			const GENERAL = "general";
 			const PRIVATE = "private";
 			var currentId = GENERAL;
@@ -94,7 +104,7 @@
 					ws.send(JSON.stringify({
 						session: SESSION,
 						type: "centerAdd",
-						name: "puneetCenter"
+						name: NAME
 					}));
 					statusBar.textContent = "Connected!";
 				}
