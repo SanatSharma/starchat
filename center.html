@@ -170,8 +170,6 @@
 							data: typedMessage.value
 						}));
 						addMessage(typedMessage.value, false);
-						document.getElementById(currentStudentId).className = "contact";
-						currentStudentId = null;
 						messages[PRIVATE].push(messageWrapper);
 					}
 					
@@ -302,6 +300,7 @@
 				document.getElementById(currentId).className = "new-message-contact"; 
 				currentId = id;
 				console.log("Current id: " + currentId);
+				typedMessage.value = "";
 				messagesPanel.innerHTML = "";
 				var messageList = messages[id];                    
 			}
@@ -339,10 +338,6 @@
 		messageBox.textContent = message;
 		flexBox.appendChild(messageBox);
 		flexBox.appendChild(timeShow);
-	//	if (messages.length == 50) {
-	//		messagesPanel.removeChild(messages.shift());
-	//	}
-	//	messages.push(flexBox);
 		setTimeout(function() {
 			messageBox.className = "show";
 		}, 10);
@@ -352,6 +347,7 @@
 		if (wereBottomScrolled) {
 			messagesPanel.scrollTop = messagesPanel.scrollHeight;
 		}
+		typedMessage.value = "";
 	}
 	</script>
 		
