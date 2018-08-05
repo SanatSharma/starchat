@@ -140,7 +140,8 @@ wss.on('connection', function connection(ws, req) {
               teacher_client.send(JSON.stringify({
                 type: "centerAdd",
                 id: ws.id,
-                name: ws.name
+                name: ws.name,
+                CenterID: ws.CenterID
               }));
             }  
             else{
