@@ -8,7 +8,7 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="chat.css">
 	<script>
-	var messagesPanel, typedMessage, first = true, ws;
+	var messagesPanel, typedMessage, first = true, ws, centerName;
 	
 	const TESTINGURI = "ws://localhost:4000";
 	const PRODURI = "ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000";
@@ -18,24 +18,29 @@
 	console.log(urlParams);
 	var SESSION;
 	var NAME;
+	var CenterID
 
 	if ("SessionID" in urlParams) {
 		SESSION = urlParams["SessionID"][0];
 	} else {
-		SESSION = "00001";
-		console.log("Exception: Unable to read Session from URL");
+		alert("Exception: Unable to read Session from URL");
 	}
 	console.log(SESSION);
+
+	if ("CenterID" in urlParams) {
+		CenterID = urlParams["CenterID"][0];
+	} else {
+		alert("Unable to read CenterID from URL");
+	}
 
 	if ("CenterName" in urlParams) {
 		NAME = urlParams["CenterName"][0];
 	} else {
-		NAME = "puneetCenter";
-		console.log("Exception: Unable to read Session from URL");
+		NAME = "Center";
+		console.log("Exception: Unable to read Center Name from URL");
 	}
+	
 	console.log(NAME);
-
-
 	const GENERAL = "general";
 	const PRIVATE = "private";
 	var currentId = GENERAL;
@@ -49,9 +54,10 @@
 		messagesPanel = document.getElementById("messagePanel");
 		typedMessage = document.getElementById("typedMessage");
 		statusBar = document.getElementById("statusBar");
+		centerName = document.getElementById("centerName");
 		var list = document.getElementById("contacts");
 
-
+		centerName.innerHTML = NAME;
 
 		var contact = document.createElement("div");
 				contact.className = "new-message-contact active-contact";
@@ -187,13 +193,6 @@
 				first = false;
 			}
 		}
-
-		if (localStorage.id) {
-			id = localStorage.id;
-		} else {
-			id = Math.floor(Math.random() * 1000000);
-			localStorage.id = id;
-		}
 	}
 
 	function parseURLParams(url) {
@@ -228,6 +227,40 @@
 
 	function addStudents(){
 		list = document.getElementById("contacts");
+		
+		const url = "http://localhost:55082/api/" + SESSION + "/" + CenterID + "/getAttendingStudents";
+		var xhr = new XMLHttpRequest();
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == XMLHttpRequest.DONE) {
+				var students = xhr.response;
+				console.log(students);
+				for (let i=0; i < students.length; i++){
+					var data = students[i];
+					var student = document.createElement('div');
+					student.className = 'contact';
+					student.id = data['StudentID'];
+					var image_placeholder = document.createElement("img");
+					image_placeholder.src = data['StudentImageURL'];
+					image_placeholder.id = "image";
+
+					var text = document.createElement("span");
+					text.className = "contact-text2";
+					text.id = "text";
+					text.textContent = data['StudentName'];
+					
+					student.appendChild(image_placeholder);
+					student.appendChild(text);
+
+					student.onclick = setCurrentStudentId;
+
+					list.appendChild(student);
+				}
+			}
+		}
+		xhr.responseType='json';
+		xhr.open('GET', url, true);
+		xhr.send(null);
+		/*
 		var hardcoded = [
 			["Bob", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg"],
 			["Ross", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_02.jpg"],
@@ -254,7 +287,7 @@
 			student.onclick = setCurrentStudentId;
 
 			list.appendChild(student);					
-		}
+		}*/
 	}
 
 	function addUnread(id){
@@ -372,7 +405,7 @@
 		<section class="right">
 			<div class="chat-head">
 				<div class="chat-name" style="padding-left:20px">
-					<h1 class="font-name">Center</h1>
+					<h1 class="font-name" id="centerName">Center</h1>
 					<p id="statusBar" class="font-online">Connecting</p>
 				</div>
 				<i class="fa fa-times fa-lg" aria-hidden="true" id="close-contact-information"></i>
