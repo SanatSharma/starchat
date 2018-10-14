@@ -8,6 +8,36 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="chat.css">
 	<script>
+
+	var Events;
+	(function (Events) {
+		Events["CONNECTION"] = "Connection";
+		Events["GROUPMESSAGE"] = "groupMessage";
+		Events["SINGLEMESSAGE"] = "singleMessage";
+		Events["DISCONNECTION"] = "Disconnect";
+		Events["CENTERREMOVE"] = "centerRemove";
+	})(Events || (Events = {}));
+	var Profile;
+	(function (Profile) {
+		Profile["STARCHAT"] = "starchat";
+	})(Profile || (Profile = {}));
+	var Group;
+	(function (Group) {
+		Group["TEACHER"] = "teacher";
+		Group["CENTER"] = "center";
+	})(Group || (Group = {}));
+	var Message;
+	(function (Message) {
+		Message["PROFILE"] = "profile";
+		Message["TYPE"] = "type";
+		Message["SESSIONID"] = "SessionID";
+		Message["GROUP"] = "group";
+		Message["WSID"] = "wsID";
+		Message["DATA"] = "data";
+		Message["STUDENT"] = "student";
+		Message["NAME"] = "name";
+	})(Message || (Message = {}));
+
 	var messagesPanel, typedMessage, first = true, ws, centerName;
 	
 	const TESTINGURI = "ws://localhost:4000";
@@ -108,8 +138,10 @@
 
 		ws.onopen = function(e) {
 			ws.send(JSON.stringify({
-				session: SESSION,
-				type: "centerAdd",
+				profile: Profile.STARCHAT,
+				group: Group.CENTER,
+				SessionID: SESSION,
+				type: Events.CONNECTION,
 				name: NAME
 			}));
 			statusBar.textContent = "Connected!";
@@ -155,9 +187,10 @@
 					if(currentId == GENERAL){
 						if(currentStudentId){
 							ws.send(JSON.stringify({
-								type: "groupMessage",
-								group: "center",
-								session: SESSION,
+								profile: Profile.STARCHAT,
+								type: Events.GROUPMESSAGE,
+								group: Group.CENTER,
+								SessionID: SESSION,
 								data: typedMessage.value,
 								student: currentStudentId
 							}));
@@ -170,9 +203,10 @@
 					}
 					else{
 						ws.send(JSON.stringify({
-							type: "singleMessage",
-							group: "center",
-							session: SESSION,
+							profile: Profile.STARCHAT,
+							type: Events.SINGLEMESSAGE,
+							group: Group.CENTER,
+							SessionID: SESSION,
 							data: typedMessage.value
 						}));
 						addMessage(typedMessage.value, false);
@@ -260,7 +294,7 @@
 		xhr.responseType='json';
 		xhr.open('GET', url, true);
 		xhr.send(null);
-		/*
+		
 		var hardcoded = [
 			["Bob", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg"],
 			["Ross", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_02.jpg"],
@@ -287,7 +321,7 @@
 			student.onclick = setCurrentStudentId;
 
 			list.appendChild(student);					
-		}*/
+		}
 	}
 
 	function addUnread(id){

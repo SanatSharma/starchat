@@ -293,6 +293,19 @@
         overflow-y: auto;
     }
     
+    .call {
+        height: 100%;
+        width: 60px;
+    }
+
+    .connect {
+        background-image: url(https://cdn.iconscout.com/icon/free/png-256/whatsapp-135-493160.png);
+    }
+
+    .disconnect {
+        background-image: url(https://cdn3.iconfinder.com/data/icons/mobile-functions/154/disconnect-512.png);
+    }
+
     .information {
         width: 100%;
         position: relative;
