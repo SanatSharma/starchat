@@ -8,8 +8,7 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="chat.css">
 	<script>
-
-	var Events;
+		var Events;
 	(function (Events) {
 		Events["CONNECTION"] = "Connection";
 		Events["GROUPMESSAGE"] = "groupMessage";
@@ -41,21 +40,21 @@
 	var messagesPanel, typedMessage, first = true, ws, centerName;
 	
 	const TESTINGURI = "ws://localhost:4000";
-	const PRODURI = "ws://ec2-18-218-225-8.us-east-2.compute.amazonaws.com:4000";
+    const PRODURI = "ws://52.15.186.193:4000";
+    const SERVERURI = 'http://twowaylive.us-east-2.elasticbeanstalk.com/api/';
 	var statusBar;
 
 	var urlParams = parseURLParams(window.location.href);
-	console.log(urlParams);
 	var SESSION;
 	var NAME;
 	var CenterID
 
 	if ("SessionID" in urlParams) {
-		SESSION = urlParams["SessionID"][0];
+        SESSION = urlParams["SessionID"][0];
+        console.log(SESSION);
 	} else {
 		alert("Exception: Unable to read Session from URL");
 	}
-	console.log(SESSION);
 
 	if ("CenterID" in urlParams) {
 		CenterID = urlParams["CenterID"][0];
@@ -67,10 +66,8 @@
 		NAME = urlParams["CenterName"][0];
 	} else {
 		NAME = "Center";
-		console.log("Exception: Unable to read Center Name from URL");
 	}
 	
-	console.log(NAME);
 	const GENERAL = "general";
 	const PRIVATE = "private";
 	var currentId = GENERAL;
@@ -95,7 +92,7 @@
 				contact.id = GENERAL;  // general chat 
 				contact.onclick = displayMessages;
 				text.className = "contact-text";
-				text.textContent = "Studio - General";
+				text.textContent = "Session Chat";
 				var newMessage = document.createElement("div");
 				newMessage.id = "nm";
 				contact.appendChild(newMessage);
@@ -111,7 +108,7 @@
 				contact2.onclick = displayMessages;
 				contact2.id = PRIVATE; // private chat
 				text2.className = "contact-text";
-				text2.textContent = "Studio - Private";
+				text2.textContent = "Support Chat";
 				newMessage = document.createElement("div");
 				newMessage.id = "nm";
 				contact2.appendChild(newMessage);
@@ -130,7 +127,8 @@
 		messages[GENERAL] = [];
 		messages[PRIVATE] = [];
 		
-		ws = new WebSocket(TESTINGURI);
+        //ws = new WebSocket(TESTINGURI);
+        ws = new WebSocket(PRODURI);
 
 		ws.onerror = function(e){
 			alert("Could not connect to server");
@@ -150,9 +148,8 @@
 		ws.onmessage = function ws_message(input){
 			var data = input.data;
 			if (isJson(data)){
-				console.log("Received message!" + data);
-				var obj = JSON.parse(data);
-				var messageWrapper = {'type': 'you', 'data': obj.data};
+                var obj = JSON.parse(data);
+                var messageWrapper = { 'type': 'you', 'data': obj.data, 'time': new Date().toLocaleTimeString() };
 				if (obj.type == "singleMessage"){
 					if(currentId == PRIVATE)
 						addMessage(obj.data, true);
@@ -170,9 +167,6 @@
 				}
 
 			}
-			else{
-				console.log("Data received is not JSON");
-			}
 		};
 
 		ws.onclose = function() {
@@ -183,7 +177,7 @@
 			if (e.keyCode === 13 && !e.shiftKey) {
 				if (typedMessage.value.length) {
 					typedMessage.value = typedMessage.value.substring(0, 512);
-					var messageWrapper = {'type': 'me', 'data': typedMessage.value};
+					var messageWrapper = {'type': 'me', 'data': typedMessage.value, 'time': new Date().toLocaleTimeString()};
 					if(currentId == GENERAL){
 						if(currentStudentId){
 							ws.send(JSON.stringify({
@@ -191,8 +185,8 @@
 								type: Events.GROUPMESSAGE,
 								group: Group.CENTER,
 								SessionID: SESSION,
-								data: typedMessage.value,
-								student: currentStudentId
+                                data: typedMessage.value,
+                                student: document.getElementById(currentStudentId).textContent
 							}));
 							addMessage(typedMessage.value, false);
 							messages[GENERAL].push(messageWrapper);
@@ -221,7 +215,6 @@
 		};
 
 		typedMessage.onclick = function() {
-			console.log("Clicked typed message");
 			if (first) {
 				typedMessage.value = "";
 				first = false;
@@ -253,22 +246,21 @@
 	try {
 		JSON.parse(str);
 	} catch (e) {
-		console.log(e);
 		return false;
 	}
 	return true;
 	}
 
-	function addStudents(){
-		list = document.getElementById("contacts");
-		
-		const url = "http://localhost:55082/api/" + SESSION + "/" + CenterID + "/getAttendingStudents";
+	function addStudents() {
+
+        list = document.getElementById("contacts");
+
+        const url = SERVERURI + SESSION + "/" + CenterID + "/getAttendingStudents";
 		var xhr = new XMLHttpRequest();
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState == XMLHttpRequest.DONE) {
 				var students = xhr.response;
-				console.log(students);
-				for (let i=0; i < students.length; i++){
+				for (let i=0; i < students.length; i++) {
 					var data = students[i];
 					var student = document.createElement('div');
 					student.className = 'contact';
@@ -281,7 +273,7 @@
 					text.className = "contact-text2";
 					text.id = "text";
 					text.textContent = data['StudentName'];
-					
+
 					student.appendChild(image_placeholder);
 					student.appendChild(text);
 
@@ -289,53 +281,24 @@
 
 					list.appendChild(student);
 				}
-			}
+            }
 		}
 		xhr.responseType='json';
 		xhr.open('GET', url, true);
 		xhr.send(null);
-		/*
-		var hardcoded = [
-			["Bob", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg"],
-			["Ross", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_02.jpg"],
-			["Max", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_03.jpg"],
-			["Claire", "https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_04.jpg"]
-		];
-
-		for(i=0;i<hardcoded.length;i++){
-			var student = document.createElement("div");
-			student.className = "contact";
-			student.id = hardcoded[i][0];
-			var image_placeholder = document.createElement("img");
-			image_placeholder.src = hardcoded[i][1];
-			image_placeholder.id = "image";
-
-			var text = document.createElement("span");
-			text.className = "contact-text2";
-			text.id = "text";
-			text.textContent = hardcoded[i][0];
-			
-			student.appendChild(image_placeholder);
-			student.appendChild(text);
-
-			student.onclick = setCurrentStudentId;
-
-			list.appendChild(student);					
-		}
-		*/
 	}
 
-	function addUnread(id){
-			var unread = studio[id][UNREAD];
-			unread = unread+1;
-			studio[id][UNREAD] = unread;
-			var group = document.getElementById(id);
-			var m = group.childNodes.item("nm");
-			m.className = "new-message";
-			m.textContent = unread;
-		}
+	function addUnread(id) {
+		var unread = studio[id][UNREAD];
+		unread = unread+1;
+		studio[id][UNREAD] = unread;
+		var group = document.getElementById(id);
+		var m = group.childNodes.item("nm");
+		m.className = "new-message";
+		m.textContent = unread;
+	}
 
-	function setCurrentStudentId(evt){
+	function setCurrentStudentId(evt) {
 		var name = evt.target;
 		var id = this.id;
 
@@ -346,58 +309,78 @@
 			else if(currentStudentId != id){
 				document.getElementById(currentStudentId).className = "contact";
 				currentStudentId = id;
-				console.log("getting here");
 			}
 			document.getElementById(currentStudentId).className = "active-student";
 		}
 	}
-	function displayMessages(evt){
-			var name = evt.target;
-			console.log("reaching here");
-			var id = this.id // get the contact id
-			var c = currentId;
-			// display on{ly the private chat messages for that id
-			if (c != id){
-				if(id==PRIVATE){
-					if(currentStudentId){
-						document.getElementById(currentStudentId).className = "contact";
-						currentStudentId = null;
-					}
-				}
-				document.getElementById(id).className ="new-message-contact active-contact";
-				document.getElementById(currentId).className = "new-message-contact"; 
-				currentId = id;
-				console.log("Current id: " + currentId);
-				typedMessage.value = "";
-				messagesPanel.innerHTML = "";
-				var messageList = messages[id];                    
-			}
-		
-			var g = document.getElementById(currentId);
-			var s = g.childNodes.item("nm");
-			s.className = "";
-			s.textContent = "";
-			studio[currentId][UNREAD] = 0;
 
-			// display appropriate messages
-			messageList.forEach(function(mess){
-					if(mess.type == "you"){
-						addMessage(mess.data, true);
-					}
-					else
-						addMessage(mess.data, false);
-				});
+	function displayMessages(evt){
+		var name = evt.target;
+		var id = this.id // get the contact id
+		var c = currentId;
+		// display on{ly the private chat messages for that id
+		if (id == PRIVATE) {
+			authenticatePrivateMessage();
 		}
 
 
+		if (c != id){
+			if(id==PRIVATE){
+				if(currentStudentId){
+					document.getElementById(currentStudentId).className = "contact";
+					currentStudentId = null;
+				}
+			}
+			document.getElementById(id).className ="new-message-contact active-contact";
+			document.getElementById(currentId).className = "new-message-contact"; 
+			currentId = id;
+			typedMessage.value = "";
+			messagesPanel.innerHTML = "";
+			var messageList = messages[id];                    
+		}
+	
+		var g = document.getElementById(currentId);
+		var s = g.childNodes.item("nm");
+		s.className = "";
+		s.textContent = "";
+		studio[currentId][UNREAD] = 0;
 
-	function addMessage(message, left) {
+		// display appropriate messages
+		messageList.forEach(function(mess){
+				if(mess.type == "you"){
+					addMessage(mess.data, true, mess.time);
+				}
+				else
+					addMessage(mess.data, false, mess.time);
+			});
+	}
+
+	function authenticatePrivateMessage() {
+		// prompt the user for credentials
+		var pass = prompt("Enter credentials:")
+		const url = SERVERURI + "AuthenticateSupportChat/" + pass;
+		var xhr = new XMLHttpRequest();
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == XMLHttpRequest.DONE) {
+				var students = xhr.response;
+				console.log(students);
+				if (students == false)
+					alert("Incorrect auth");				
+			}
+		}
+		xhr.responseType='json';
+		xhr.open('GET', url, true);
+		xhr.send(null);
+	}
+
+	function addMessage(message, left, time="") {
 		var flexBox = document.createElement('div');if (!left)
 		flexBox.className = "chat-bubble me";
 		else
 		flexBox.className = "chat-bubble you";
 	//  flexBox.style = 'display: flex; ' + (left ? '' : 'justify-content: flex-end');
-		var time = new Date().toLocaleTimeString();
+        if (time == "")
+    		time = new Date().toLocaleTimeString();
 		var messageBox = document.createElement('p');
 		messageBox.className = "content";
 		var timeShow = document.createElement('p');
